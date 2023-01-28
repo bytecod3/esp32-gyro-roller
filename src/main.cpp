@@ -44,12 +44,7 @@ void _draw_target_point_circle(){
   /*
   Draw target like circle on the screen
   */
-  uint8_t _target_point_radius = 10;
-  uint8_t _target_point_x_offset = (SCREEN_WIDTH/2);
-  uint8_t _y_offset = 15;
-  uint8_t _target_point_line_marker_height = 6;
-  uint8_t _center_circle_radius = 2;
-  
+
   // draw target outer circle
   display.drawCircle(_target_point_x_offset, _y_offset+_target_point_radius, _target_point_radius+_target_point_line_marker_height/2, WHITE);
 
@@ -57,7 +52,7 @@ void _draw_target_point_circle(){
   display.drawFastVLine(SCREEN_WIDTH/2, _target_point_radius-_target_point_line_marker_height, _target_point_line_marker_height, WHITE); // vertical top
   display.drawFastVLine(SCREEN_WIDTH/2, (_y_offset + _target_point_radius*2), _target_point_line_marker_height, WHITE); // vertical bottom
   display.drawFastHLine((SCREEN_WIDTH/2) - _target_point_radius-_target_point_line_marker_height, (_y_offset + _target_point_radius), _target_point_line_marker_height, WHITE ); // horizontal left
-  display.drawFastHLine((SCREEN_WIDTH/2) + _target_point_radius, (_y_offset + _target_point_radius), _target_point_line_marker_height, WHITE ); // horizontal right
+  display.drawFastHLine((SCREEN_WIDTH/2) + _target_point_radius, _y_offset + _target_point_radius, _target_point_line_marker_height, WHITE ); // horizontal right
 
   // draw center point circle
   display.drawCircle(SCREEN_WIDTH/2, _y_offset + _target_point_radius, _center_circle_radius, WHITE);
@@ -110,6 +105,27 @@ void _init_MPU6050(){
 
 }
 
+void  _update_helm_and_tiller(float change){
+  // if change is +ve, rotate the wheel clockwise
+  // otherwise rotate the wheel anticlockwise
+  display.clearDisplay();
+
+  change = (int)change;
+
+  // check if change is +ve or -ve
+  if(change > 0){
+    uint8_t increasing_cahnge_x_offset = 2;
+    display.drawLine((SCREEN_WIDTH/2) + _target_point_radius, _y_offset + _target_point_radius + change, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length, _y_offset + _target_point_radius + change, WHITE);
+  } else if (change < 0)
+  {
+    
+  }
+
+  display.display();
+  
+
+}
+
 void setup(){               
   Serial.begin(115200);
   
@@ -135,20 +151,25 @@ void loop() {
   sensors_event_t a, g, temp;
   gyroscope.getEvent(&a, &g, &temp);
 
-  // debug acceleration readings on serial monitor
-  debug("[+] Acceleration: ");
-  debug("x: "); debug(a.acceleration.x); debug(", ");
-  debug("y: "); debug(a.acceleration.y); debug(", ");
-  debug("z: "); debug(a.acceleration.z); debug(" m/s^2 ");
-  debugln();
+  acc_x = a.acceleration.x;
+  acc_y = a.acceleration.y;
+  acc_z = a.acceleration.z;
 
-  // debug gyroscope readings on serial monitor
-  debug("[+] Angular velocity: ");
-  debug("x: "); debug(g.gyro.x); debug(", ");
-  debug("y: "); debug(g.gyro.y); debug(", ");
-  debug("z: "); debug(g.gyro.z); debug(" rad/s ");
-  debugln();
+  // measure and convert rotational angles
+  roll_angle = (atan(acc_y/sqrt(acc_z*acc_z + acc_x*acc_x))) / conversion_factor;
+  pitch_angle = (atan(-acc_x/sqrt(acc_y*acc_y + acc_z*acc_z))) / conversion_factor;
 
-  delay(400);
+  // find the change in roll angle
+  change_in_roll_angle = roll_angle - old_roll_angle;
+
+  // update the old_roll_angle to whatever is being read now
+  old_roll_angle = roll_angle;
+
+  debug("[+] Roll angle change: "); debug(change_in_roll_angle); debugln();
+
+  // update screen helm and tiller - the wheel (^.^)
+  _update_helm_and_tiller(change_in_roll_angle);
+
+  delay(300);
 
 }
