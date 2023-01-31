@@ -85,7 +85,6 @@ void _draw_side_levellers(){
     display.drawFastVLine(i, _y_scaler_offset+_marker_height/2 - _tick_height/2, _tick_height, WHITE);
   }
 }
-
 void _init_MPU6050(){
   /*
     Initialize MPU6050
@@ -108,22 +107,25 @@ void _init_MPU6050(){
 void  _update_helm_and_tiller(float change){
   // if change is +ve, rotate the wheel clockwise
   // otherwise rotate the wheel anticlockwise
-  display.clearDisplay();
-
   change = (int)change;
 
   // check if change is +ve or -ve
-  if(change > 0){
-    uint8_t increasing_cahnge_x_offset = 2;
-    display.drawLine((SCREEN_WIDTH/2) + _target_point_radius, _y_offset + _target_point_radius + change, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length, _y_offset + _target_point_radius + change, WHITE);
-  } else if (change < 0)
-  {
+  // if(change > 0){
+  //   display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset, _y_offset + _target_point_radius + change, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change, WHITE);
+  //   display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset*2, _y_offset + _target_point_radius + change/2, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change, WHITE);
+  //   display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset*3, _y_offset + _target_point_radius + change/2, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change*2, WHITE);
+ 
+  // } else if (change < 0)
+  // {
     
-  }
+  // }
 
+  display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset, _y_offset + _target_point_radius + change, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change, WHITE);
+  display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset*2, _y_offset + _target_point_radius + change/2, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change, WHITE);
+  display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset*3, _y_offset + _target_point_radius + change/2, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change*2, WHITE);
+ 
+ 
   display.display();
-  
-
 }
 
 void setup(){               
@@ -145,7 +147,6 @@ void setup(){
 
 }
 
-
 void loop() {
   // get gyroscope readings
   sensors_event_t a, g, temp;
@@ -159,16 +160,22 @@ void loop() {
   roll_angle = (atan(acc_y/sqrt(acc_z*acc_z + acc_x*acc_x))) / conversion_factor;
   pitch_angle = (atan(-acc_x/sqrt(acc_y*acc_y + acc_z*acc_z))) / conversion_factor;
 
+  // calculate the polar coordinates for the roll
+  x_roll = _target_point_radius*cos(roll_angle);
+  y_roll = _target_point_radius*-sin(roll_angle);
+
   // find the change in roll angle
   change_in_roll_angle = roll_angle - old_roll_angle;
 
   // update the old_roll_angle to whatever is being read now
   old_roll_angle = roll_angle;
 
-  debug("[+] Roll angle change: "); debug(change_in_roll_angle); debugln();
+  debug("[+] (x,y): "); debug(x_roll); debug("  "); debug(y_roll); debugln();
+  display.drawPixel((SCREEN_WIDTH/2 + x_roll), _y_offset+_target_point_radius + y_roll, WHITE);
 
   // update screen helm and tiller - the wheel (^.^)
-  _update_helm_and_tiller(change_in_roll_angle);
+  //_update_helm_and_tiller(change_in_roll_angle);
+  display.display();
 
   delay(300);
 

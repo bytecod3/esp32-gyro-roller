@@ -24,4 +24,7 @@ float old_roll_angle = 0, new_roll_angle, change_in_roll_angle;
 
 float conversion_factor = 3.142/180; // value to convert radians to degrees
 
+float radius;
+float x_roll, y_roll;
+
 #endif
