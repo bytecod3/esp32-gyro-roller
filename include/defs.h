@@ -26,5 +26,7 @@ float conversion_factor = 3.142/180; // value to convert radians to degrees
 
 float radius;
 float x_roll, y_roll;
+uint8_t _tiller_rectangle_offset = 10;
+uint8_t _marking_triangle_width = 5;
 
 #endif

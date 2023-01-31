@@ -40,24 +40,7 @@ void _set_display_settings(){
     display.drawFastHLine(SCREEN_WIDTH-_y_tick_width, j, _y_tick_width, WHITE);
   }
 }
-void _draw_target_point_circle(){
-  /*
-  Draw target like circle on the screen
-  */
 
-  // draw target outer circle
-  display.drawCircle(_target_point_x_offset, _y_offset+_target_point_radius, _target_point_radius+_target_point_line_marker_height/2, WHITE);
-
-  // lines around the target circle
-  display.drawFastVLine(SCREEN_WIDTH/2, _target_point_radius-_target_point_line_marker_height, _target_point_line_marker_height, WHITE); // vertical top
-  display.drawFastVLine(SCREEN_WIDTH/2, (_y_offset + _target_point_radius*2), _target_point_line_marker_height, WHITE); // vertical bottom
-  display.drawFastHLine((SCREEN_WIDTH/2) - _target_point_radius-_target_point_line_marker_height, (_y_offset + _target_point_radius), _target_point_line_marker_height, WHITE ); // horizontal left
-  display.drawFastHLine((SCREEN_WIDTH/2) + _target_point_radius, _y_offset + _target_point_radius, _target_point_line_marker_height, WHITE ); // horizontal right
-
-  // draw center point circle
-  display.drawCircle(SCREEN_WIDTH/2, _y_offset + _target_point_radius, _center_circle_radius, WHITE);
-    
-}
 void _draw_side_levellers(){
   /*
   Draw triangle pointers that show at the sides of the leveling line
@@ -104,27 +87,31 @@ void _init_MPU6050(){
 
 }
 
-void  _update_helm_and_tiller(float change){
+void  _update_helm_and_tiller(){
   // if change is +ve, rotate the wheel clockwise
   // otherwise rotate the wheel anticlockwise
-  change = (int)change;
+  // using polar coordinates later
 
-  // check if change is +ve or -ve
-  // if(change > 0){
-  //   display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset, _y_offset + _target_point_radius + change, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change, WHITE);
-  //   display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset*2, _y_offset + _target_point_radius + change/2, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change, WHITE);
-  //   display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset*3, _y_offset + _target_point_radius + change/2, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change*2, WHITE);
- 
-  // } else if (change < 0)
-  // {
+  // draw a rectangle to cover the helm and tiller
+  display.fillRect((SCREEN_WIDTH/2)-_target_point_radius-_tiller_rectangle_offset, _y_offset, _target_point_radius*2+_tiller_rectangle_offset, _target_point_radius*2+_tiller_rectangle_offset, 0);
+
+  /*
+  Draw target like circle on the screen
+  */
+
+  // draw target outer circle
+  display.drawCircle(_target_point_x_offset, _y_offset+_target_point_radius, _target_point_radius+_target_point_line_marker_height/2, WHITE);
+
+  // lines around the target circle
+  display.drawFastVLine(SCREEN_WIDTH/2, _target_point_radius-_target_point_line_marker_height, _target_point_line_marker_height, WHITE); // vertical top
+  display.drawFastVLine(SCREEN_WIDTH/2, (_y_offset + _target_point_radius*2), _target_point_line_marker_height, WHITE); // vertical bottom
+  display.drawFastHLine((SCREEN_WIDTH/2) - _target_point_radius-_target_point_line_marker_height, (_y_offset + _target_point_radius), _target_point_line_marker_height, WHITE ); // horizontal left
+  display.drawFastHLine((SCREEN_WIDTH/2) + _target_point_radius, _y_offset + _target_point_radius, _target_point_line_marker_height, WHITE ); // horizontal right
+
+  // draw center point circle
+  display.drawCircle(SCREEN_WIDTH/2, _y_offset + _target_point_radius, _center_circle_radius, WHITE);
     
-  // }
-
-  display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset, _y_offset + _target_point_radius + change, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change, WHITE);
-  display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset*2, _y_offset + _target_point_radius + change/2, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change, WHITE);
-  display.drawLine((SCREEN_WIDTH/2) + _target_point_radius - _change_x_offset*3, _y_offset + _target_point_radius + change/2, (SCREEN_WIDTH/2) + _target_point_radius + _target_point_rotator_length - _change_x_offset, _y_offset + _target_point_radius + change*2, WHITE);
- 
- 
+  
   display.display();
 }
 
@@ -138,7 +125,6 @@ void setup(){
   }
 
   _set_display_settings();
-  _draw_target_point_circle();
   _draw_side_levellers();
   _init_MPU6050();
 
@@ -161,8 +147,8 @@ void loop() {
   pitch_angle = (atan(-acc_x/sqrt(acc_y*acc_y + acc_z*acc_z))) / conversion_factor;
 
   // calculate the polar coordinates for the roll
-  x_roll = _target_point_radius*cos(roll_angle);
-  y_roll = _target_point_radius*-sin(roll_angle);
+  x_roll = _target_point_radius*cos(radians(roll_angle));
+  y_roll = _target_point_radius*-sin(radians(roll_angle));
 
   // find the change in roll angle
   change_in_roll_angle = roll_angle - old_roll_angle;
@@ -170,11 +156,18 @@ void loop() {
   // update the old_roll_angle to whatever is being read now
   old_roll_angle = roll_angle;
 
-  debug("[+] (x,y): "); debug(x_roll); debug("  "); debug(y_roll); debugln();
-  display.drawPixel((SCREEN_WIDTH/2 + x_roll), _y_offset+_target_point_radius + y_roll, WHITE);
-
   // update screen helm and tiller - the wheel (^.^)
-  //_update_helm_and_tiller(change_in_roll_angle);
+  _update_helm_and_tiller();
+
+  //debug("[+] (x,y): "); debug(x_roll); debug("  "); debug(y_roll); debugln();
+
+  display.fillTriangle(
+    (SCREEN_WIDTH/2 + x_roll), _y_offset+_target_point_radius + y_roll, 
+    (SCREEN_WIDTH/2 + x_roll)+ 2, _y_offset+_target_point_radius + y_roll + _marking_triangle_width,
+    (SCREEN_WIDTH/2 + x_roll)+ _marking_triangle_width, _y_offset+_target_point_radius + y_roll,
+    WHITE
+  );
+
   display.display();
 
   delay(300);
