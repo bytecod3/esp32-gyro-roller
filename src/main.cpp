@@ -4,6 +4,7 @@
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_MPU6050.h>
+// #include <Fonts/FreeSans9pt7b.h>
 #include "defs.h"
 #include "debug.h"
 
@@ -17,28 +18,12 @@ void _set_display_settings(){
   display.setTextSize(1);
   display.setTextColor(WHITE);
 
+  // set font
+  // display.setFont(&FreeSans9pt7b);
+
   // Clear the buffer.
   display.clearDisplay();
 
-  // top text 
-  display.setCursor(SCREEN_WIDTH/2 - 27, 0);
-  display.print("Gyro Scope");
-
-  // reset cursor
-  display.setCursor(0, 0);
-
-  // draw left y ticks
-  uint8_t _y_tick_spacing = 10;
-  uint8_t _y_tick_width = 5;
-
-  for(uint8_t j = 10; j < SCREEN_HEIGHT; j += _y_tick_spacing){
-    display.drawFastHLine(0, j, _y_tick_width, WHITE);
-  }
-
-  // draw right y ticks
-  for(uint8_t j = 10; j < SCREEN_HEIGHT; j += _y_tick_spacing){
-    display.drawFastHLine(SCREEN_WIDTH-_y_tick_width, j, _y_tick_width, WHITE);
-  }
 }
 
 void _draw_side_levellers(){
@@ -67,6 +52,7 @@ void _draw_side_levellers(){
   for(uint8_t i = _marker_width; i < SCREEN_WIDTH-_marker_width; i += _tick_spacing ){
     display.drawFastVLine(i, _y_scaler_offset+_marker_height/2 - _tick_height/2, _tick_height, WHITE);
   }
+
 }
 void _init_MPU6050(){
   /*
@@ -90,29 +76,35 @@ void _init_MPU6050(){
 void  _update_helm_and_tiller(){
   // if change is +ve, rotate the wheel clockwise
   // otherwise rotate the wheel anticlockwise
-  // using polar coordinates later
+  // using polar coordinates
 
-  // draw a rectangle to cover the helm and tiller
-  display.fillRect((SCREEN_WIDTH/2)-_target_point_radius-_tiller_rectangle_offset, _y_offset, _target_point_radius*2+_tiller_rectangle_offset, _target_point_radius*2+_tiller_rectangle_offset, 0);
-
-  /*
-  Draw target like circle on the screen
-  */
+  // this rectangle willl fill the whole screen 
+  display.fillRect(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 
   // draw target outer circle
   display.drawCircle(_target_point_x_offset, _y_offset+_target_point_radius, _target_point_radius+_target_point_line_marker_height/2, WHITE);
-
+  
   // lines around the target circle
   display.drawFastVLine(SCREEN_WIDTH/2, _target_point_radius-_target_point_line_marker_height, _target_point_line_marker_height, WHITE); // vertical top
   display.drawFastVLine(SCREEN_WIDTH/2, (_y_offset + _target_point_radius*2), _target_point_line_marker_height, WHITE); // vertical bottom
   display.drawFastHLine((SCREEN_WIDTH/2) - _target_point_radius-_target_point_line_marker_height, (_y_offset + _target_point_radius), _target_point_line_marker_height, WHITE ); // horizontal left
   display.drawFastHLine((SCREEN_WIDTH/2) + _target_point_radius, _y_offset + _target_point_radius, _target_point_line_marker_height, WHITE ); // horizontal right
+  display.drawCircle(SCREEN_WIDTH/2, _y_offset + _target_point_radius, _center_circle_radius, WHITE); // center most circle
 
-  // draw center point circle
-  display.drawCircle(SCREEN_WIDTH/2, _y_offset + _target_point_radius, _center_circle_radius, WHITE);
-    
-  
-  display.display();
+  // draw left y ticks
+  uint8_t _y_tick_spacing = 10;
+  uint8_t _y_tick_width = 5;
+
+  for(uint8_t j = 10; j < SCREEN_HEIGHT; j += _y_tick_spacing){
+    display.drawFastHLine(0, j, _y_tick_width, WHITE);
+  }
+
+  // draw right y ticks
+  for(uint8_t j = 10; j < SCREEN_HEIGHT; j += _y_tick_spacing){
+    display.drawFastHLine(SCREEN_WIDTH-_y_tick_width, j, _y_tick_width, WHITE);
+  }
+
+  display.display(); // enable displaying
 }
 
 void setup(){               
@@ -147,8 +139,11 @@ void loop() {
   pitch_angle = (atan(-acc_x/sqrt(acc_y*acc_y + acc_z*acc_z))) / conversion_factor;
 
   // calculate the polar coordinates for the roll
-  x_roll = _target_point_radius*cos(radians(roll_angle));
-  y_roll = _target_point_radius*-sin(radians(roll_angle));
+  x_roll = cos(radians(roll_angle))*_marker_radius;
+  y_roll = -sin(radians(roll_angle))*_marker_radius;
+
+  x_roll_inverse = -cos(radians(roll_angle))*_marker_radius;
+  y_roll_inverse = sin(radians(roll_angle))*_marker_radius;
 
   // find the change in roll angle
   change_in_roll_angle = roll_angle - old_roll_angle;
@@ -159,17 +154,46 @@ void loop() {
   // update screen helm and tiller - the wheel (^.^)
   _update_helm_and_tiller();
 
-  //debug("[+] (x,y): "); debug(x_roll); debug("  "); debug(y_roll); debugln();
-
-  display.fillTriangle(
-    (SCREEN_WIDTH/2 + x_roll), _y_offset+_target_point_radius + y_roll, 
-    (SCREEN_WIDTH/2 + x_roll)+ 2, _y_offset+_target_point_radius + y_roll + _marking_triangle_width,
-    (SCREEN_WIDTH/2 + x_roll)+ _marking_triangle_width, _y_offset+_target_point_radius + y_roll,
+  display.fillCircle(
+    (SCREEN_WIDTH/2 + x_roll)-2,
+    _y_offset+_target_point_radius + y_roll + _marking_triangle_width,
+    2,
     WHITE
   );
 
+  // draw mirrored marker
+  display.fillCircle(
+    (SCREEN_WIDTH/2 + x_roll_inverse)-2,
+    _y_offset+_target_point_radius + y_roll_inverse + _marking_triangle_width,
+    2,
+    WHITE
+  );
+
+  display.fillRect(
+    (SCREEN_WIDTH/2 + x_roll)-2,
+    _y_offset+_target_point_radius + y_roll + _marking_triangle_width,
+    3,
+    3,
+    WHITE
+  );
+
+  display.drawLine(
+    (SCREEN_WIDTH/2 + x_roll)-2,
+    _y_offset+_target_point_radius + y_roll + _marking_triangle_width,
+    (SCREEN_WIDTH/2 + x_roll_inverse)-2,
+    _y_offset+_target_point_radius + y_roll_inverse + _marking_triangle_width,
+    WHITE);
+
+  // update the roll angle value on the screen
+  display.setCursor(SCREEN_WIDTH/2 - 45, 0);
+  display.print("Flight Controller"); 
+
+  display.setCursor(SCREEN_WIDTH/2-25, SCREEN_HEIGHT-10);
+  display.print("Roll:"); 
+  display.print(roll_angle);
+  
   display.display();
 
-  delay(300);
+  delay(100);
 
 }

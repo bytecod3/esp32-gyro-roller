@@ -8,7 +8,7 @@
 #define SETUP_DELAY 100
 
 // variables for drawing lines around the helm
-uint8_t _target_point_radius = 10;
+uint8_t _target_point_radius = 15;
 uint8_t _target_point_x_offset = (SCREEN_WIDTH/2);
 uint8_t _y_offset = 15;
 uint8_t _target_point_line_marker_height = 6;
@@ -25,8 +25,10 @@ float old_roll_angle = 0, new_roll_angle, change_in_roll_angle;
 float conversion_factor = 3.142/180; // value to convert radians to degrees
 
 float radius;
-float x_roll, y_roll;
-uint8_t _tiller_rectangle_offset = 10;
-uint8_t _marking_triangle_width = 5;
+float x_roll, y_roll, x_roll_inverse, y_roll_inverse;
+uint8_t _tiller_rectangle_offset = 15;
+uint8_t _tiller_rectangle_width_offset = 20;
+uint8_t _marking_triangle_width = 0;
+uint8_t _marker_radius = 18;
 
 #endif
