@@ -31,4 +31,6 @@ uint8_t _tiller_rectangle_width_offset = 20;
 uint8_t _marking_triangle_width = 0;
 uint8_t _marker_radius = 18;
 
+// optimization variables
+
 #endif

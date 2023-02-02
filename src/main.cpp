@@ -1,15 +1,21 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <WiFi.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_MPU6050.h>
+#include <ESPAsyncWebServer.h>
 // #include <Fonts/FreeSans9pt7b.h>
 #include "defs.h"
 #include "debug.h"
+#include <wifi_config.h>
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
 Adafruit_MPU6050 gyroscope;
+
+// create async web server
+AsyncWebServer server(80);
 
 void _set_display_settings(){
   /*
@@ -107,6 +113,19 @@ void  _update_helm_and_tiller(){
   display.display(); // enable displaying
 }
 
+void _establish_wifi_connection(){
+  WiFi.begin(SSID, PASSWORD);
+  while(WiFi.status() != WL_CONNECTED){
+    debugln("[+] Connecting to WiFi...");
+    delay(200);
+  }
+
+  // show the IP address of server if connected to WIFI
+  debugln("+ Connected with IP_ADR:");
+  debug(WiFi.localIP()); debugln();
+
+}
+
 void setup(){               
   Serial.begin(115200);
   
@@ -119,6 +138,18 @@ void setup(){
   _set_display_settings();
   _draw_side_levellers();
   _init_MPU6050();
+  _establish_wifi_connection();
+
+  // send roll angle to client
+  server.on("/get_roll", HTTP_GET, [](AsyncWebServerRequest *request){
+    // debugln("[+]Request received. Processing...");
+    String roll_angle_str;
+    roll_angle_str = roll_angle;
+    request->send(200, "text/plain", roll_angle_str);
+  });
+
+  // start server
+  server.begin();
 
   // enable OLED screen to display
   display.display();
@@ -144,12 +175,6 @@ void loop() {
 
   x_roll_inverse = -cos(radians(roll_angle))*_marker_radius;
   y_roll_inverse = sin(radians(roll_angle))*_marker_radius;
-
-  // find the change in roll angle
-  change_in_roll_angle = roll_angle - old_roll_angle;
-
-  // update the old_roll_angle to whatever is being read now
-  old_roll_angle = roll_angle;
 
   // update screen helm and tiller - the wheel (^.^)
   _update_helm_and_tiller();
@@ -184,12 +209,22 @@ void loop() {
     _y_offset+_target_point_radius + y_roll_inverse + _marking_triangle_width,
     WHITE);
 
-  // update the roll angle value on the screen
-  display.setCursor(SCREEN_WIDTH/2 - 45, 0);
-  display.print("Flight Controller"); 
+  // display data on screen 
+  // main title
+  display.setCursor(SCREEN_WIDTH/2 - 40, 0);
+  display.print("Gyro Controller"); 
 
-  display.setCursor(SCREEN_WIDTH/2-25, SCREEN_HEIGHT-10);
-  display.print("Roll:"); 
+  // accelerations
+  display.setCursor(5, SCREEN_HEIGHT/2);
+  display.print("acc:");
+  display.setCursor(5, SCREEN_HEIGHT/2 + 10);
+  display.print("x:");
+  display.setCursor(15, SCREEN_HEIGHT/2 + 10);
+  display.print(acc_x);
+
+  // roll angle
+  display.setCursor(5, SCREEN_HEIGHT/2 + 20);
+  display.print("R:"); 
   display.print(roll_angle);
   
   display.display();
