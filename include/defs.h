@@ -1,6 +1,11 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+// freeRTOS defines
+#define STACK_DEPTH 1024
+#define PRO_CPU 0
+#define APP_CPU 1
+
 #define SCREEN_HEIGHT 64
 #define SCREEN_WIDTH 128
 #define SCREEN_ADDRESS 0X3C

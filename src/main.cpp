@@ -1,65 +1,18 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <WiFi.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_MPU6050.h>
 #include <ESPAsyncWebServer.h>
-// #include <Fonts/FreeSans9pt7b.h>
 #include "defs.h"
 #include "debug.h"
 #include <wifi_config.h>
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
 Adafruit_MPU6050 gyroscope;
 
 // create async web server
 AsyncWebServer server(80);
 
-void _set_display_settings(){
-  /*
-  Set display parameters
-  */
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-
-  // set font
-  // display.setFont(&FreeSans9pt7b);
-
-  // Clear the buffer.
-  display.clearDisplay();
-
-}
-
-void _draw_side_levellers(){
-  /*
-  Draw triangle pointers that show at the sides of the leveling line
-  */
-  uint8_t _marker_height = 10;
-  uint8_t _marker_width = 10;
-
-  uint8_t _y_scaler_offset = 50;
-
-  // left marker
-  display.fillTriangle(0, _y_scaler_offset, 0, _y_scaler_offset + _marker_height, _marker_width, _y_scaler_offset + _marker_height/2, WHITE);
-
-  // right marker
-  display.fillTriangle(SCREEN_WIDTH, _y_scaler_offset, SCREEN_WIDTH, _y_scaler_offset + _marker_height, SCREEN_WIDTH-_marker_width, _y_scaler_offset + _marker_height/2, WHITE);
-
-  // leveling line
-  uint8_t _levelling_line_width = SCREEN_WIDTH - 2*_marker_width;
-  display.drawFastHLine(_marker_width, _y_scaler_offset+_marker_height/2, _levelling_line_width ,WHITE);
-
-  // leveller line horizontal ticks
-  uint8_t _tick_spacing = 10;
-  uint8_t _tick_height = 6;
-
-  for(uint8_t i = _marker_width; i < SCREEN_WIDTH-_marker_width; i += _tick_spacing ){
-    display.drawFastVLine(i, _y_scaler_offset+_marker_height/2 - _tick_height/2, _tick_height, WHITE);
-  }
-
-}
 void _init_MPU6050(){
   /*
     Initialize MPU6050
@@ -128,31 +81,20 @@ void _establish_wifi_connection(){
 
 void setup(){               
   Serial.begin(115200);
-  
-  // attempt to initialize OLED screen
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    debugln(F("SSD1306 allocation failed"));
-    for (;;); // loop forever
-  }
 
-  _set_display_settings();
-  _draw_side_levellers();
   _init_MPU6050();
   _establish_wifi_connection();
 
   // send roll angle to client
   server.on("/get_roll", HTTP_GET, [](AsyncWebServerRequest *request){
     // debugln("[+]Request received. Processing...");
-    String roll_angle_str;
+    String roll_angle_str;  
     roll_angle_str = roll_angle;
     request->send(200, "text/plain", roll_angle_str);
   });
 
   // start server
   server.begin();
-
-  // enable OLED screen to display
-  display.display();
 
 }
 
@@ -176,58 +118,6 @@ void loop() {
   x_roll_inverse = -cos(radians(roll_angle))*_marker_radius;
   y_roll_inverse = sin(radians(roll_angle))*_marker_radius;
 
-  // update screen helm and tiller - the wheel (^.^)
-  _update_helm_and_tiller();
-
-  display.fillCircle(
-    (SCREEN_WIDTH/2 + x_roll)-2,
-    _y_offset+_target_point_radius + y_roll + _marking_triangle_width,
-    2,
-    WHITE
-  );
-
-  // draw mirrored marker
-  display.fillCircle(
-    (SCREEN_WIDTH/2 + x_roll_inverse)-2,
-    _y_offset+_target_point_radius + y_roll_inverse + _marking_triangle_width,
-    2,
-    WHITE
-  );
-
-  display.fillRect(
-    (SCREEN_WIDTH/2 + x_roll)-2,
-    _y_offset+_target_point_radius + y_roll + _marking_triangle_width,
-    3,
-    3,
-    WHITE
-  );
-
-  display.drawLine(
-    (SCREEN_WIDTH/2 + x_roll)-2,
-    _y_offset+_target_point_radius + y_roll + _marking_triangle_width,
-    (SCREEN_WIDTH/2 + x_roll_inverse)-2,
-    _y_offset+_target_point_radius + y_roll_inverse + _marking_triangle_width,
-    WHITE);
-
-  // display data on screen 
-  // main title
-  display.setCursor(SCREEN_WIDTH/2 - 40, 0);
-  display.print("Gyro Controller"); 
-
-  // accelerations
-  display.setCursor(5, SCREEN_HEIGHT/2);
-  display.print("acc:");
-  display.setCursor(5, SCREEN_HEIGHT/2 + 10);
-  display.print("x:");
-  display.setCursor(15, SCREEN_HEIGHT/2 + 10);
-  display.print(acc_x);
-
-  // roll angle
-  display.setCursor(5, SCREEN_HEIGHT/2 + 20);
-  display.print("R:"); 
-  display.print(roll_angle);
-  
-  display.display();
 
   delay(100);
 
